@@ -3,8 +3,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 
-// Firebase Service Account Key ফাইল রিকোয়ার করা
-const serviceAccount = require('./serviceAccountKey.json');
+// রেন্ডারের Environment Variable থেকে সিক্রেট কি রিড করার সঠিক পদ্ধতি
+const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
