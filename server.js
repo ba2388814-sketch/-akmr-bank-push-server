@@ -7,20 +7,16 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ফায়ারবেস কনফিগারেশন সরাসরি সেট করা হলো
+// Base64 থেকে প্রাইভেট কি ডিকোড করে নেওয়া হচ্ছে, ফলে কোনো এরর আসবে না
+const decodedPrivateKey = process.env.FIREBASE_PRIVATE_KEY_B64 
+  ? Buffer.from(process.env.FIREBASE_PRIVATE_KEY_B64, 'base64').toString('utf8')
+  : undefined;
+
 admin.initializeApp({
   credential: admin.credential.cert({
-    type: "service_account",
-    project_id: "pushserver-ff2b4",
-    private_key_id: "216091395b28d5810d29193798efb7a13c9fb605",
-    private_key: "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC6Nf57+XQ8oN6i\n5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b\n5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b\n5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b\n-----END PRIVATE KEY-----",
-    client_email: "firebase-adminsdk-fbsvc@pushserver-ff2b4.iam.gserviceaccount.com",
-    client_id: "116543851658091350123",
-    auth_uri: "https://accounts.google.com/o/oauth2/auth",
-    token_uri: "https://oauth2.googleapis.com/token",
-    auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-    client_x509_cert_url: "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40pushserver-ff2b4.iam.gserviceaccount.com",
-    universe_domain: "googleapis.com"
+    projectId: "pushserver-ff2b4",
+    clientEmail: "firebase-adminsdk-fbsvc@pushserver-ff2b4.iam.gserviceaccount.com",
+    privateKey: decodedPrivateKey
   })
 });
 
@@ -42,102 +38,19 @@ app.get('/', (req, res) => {
   res.send('A K M R BANK PLC Push Notification Server is Running successfully!');
 });
 
-app.get('/debug', (req, res) => {
-  res.json({
-    status: true,
-    message: 'A K M R BANK Server Connected',
-    project_id: "pushserver-ff2b4",
-    client_email: "firebase-adminsdk-fbsvc@pushserver-ff2b4.iam.gserviceaccount.com"
-  });
-});
-
 app.post('/register-token', async (req, res) => {
   const { token, appId, userAgent } = req.body;
-
-  if (!token)               return res.status(400).json({ success: false, error: 'token required' });
-  if (!isValidAppId(appId)) return res.status(400).json({ success: false, error: 'valid appId required' });
+  if (!token || !isValidAppId(appId)) return res.status(400).json({ success: false, error: 'invalid data' });
 
   try {
     await devicesRef(appId).doc(tokenDocId(token)).set({
-      token,
-      appId,
-      userAgent:    userAgent || '',
-      registeredAt: Date.now(),
-      updatedAt:    Date.now()
+      token, appId, userAgent: userAgent || '', registeredAt: Date.now()
     }, { merge: true });
-
-    res.json({ success: true, message: 'Token registered for A K M R BANK' });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.post('/send-notification', async (req, res) => {
-  const { token, title, body, imageUrl } = req.body;
-  if (!token) return res.status(400).json({ success: false, error: 'token required' });
-
-  try {
-    const t = title || 'A K M R BANK Notification';
-    const b = body  || '';
-
-    const payloadData = { title: t, body: b };
-    if (imageUrl) payloadData.imageUrl = imageUrl;
-
-    const message = {
-      token,
-      data: payloadData,
-      android: { priority: 'high' }
-    };
-
-    const msgId = await admin.messaging().send(message);
-    res.json({ success: true, messageId: msgId, message: 'Sent by A K M R BANK Server' });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.post('/send-all', async (req, res) => {
-  const { appId, title, body, imageUrl } = req.body;
-  if (!isValidAppId(appId)) return res.status(400).json({ success: false, error: 'valid appId required' });
-
-  try {
-    const snap = await devicesRef(appId).get();
-    if (snap.empty) return res.json({ success: false, error: 'No tokens found for this app' });
-
-    const tokens = snap.docs.map(d => d.data().token).filter(Boolean);
-    const t = title || 'A K M R BANK Notification';
-    const b = body  || '';
-
-    const payloadData = { title: t, body: b };
-    if (imageUrl) payloadData.imageUrl = imageUrl;
-
-    const messages = tokens.map(token => ({
-      token,
-      data: payloadData,
-      android: { priority: 'high' }
-    }));
-
-    const result = await admin.messaging().sendEach(messages);
-
-    const batch = db.batch();
-    let removed = 0;
-    result.responses.forEach((r, i) => {
-      if (!r.success) { batch.delete(snap.docs[i].ref); removed++; }
-    });
-    if (removed > 0) await batch.commit();
-
-    res.json({
-      success:      true,
-      appId,
-      total:        tokens.length,
-      successCount: result.successCount,
-      failureCount: result.failureCount,
-      message:      'Broadcast processed by A K M R BANK Server'
-    });
+    res.json({ success: true, message: 'Token registered' });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
 });
 
 const PORT = process.env.PORT || 7860;
-app.listen(PORT, () => console.log(`A K M R BANK Push Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`A K M R BANK Server running on port ${PORT}`));
