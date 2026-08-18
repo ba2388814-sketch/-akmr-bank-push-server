@@ -7,11 +7,20 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// ফায়ারবেস কনফিগারেশন সরাসরি সেট করা হলো
 admin.initializeApp({
   credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
+    type: "service_account",
+    project_id: "pushserver-ff2b4",
+    private_key_id: "216091395b28d5810d29193798efb7a13c9fb605",
+    private_key: "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC6Nf57+XQ8oN6i\n5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b\n5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b\n5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b5W5b\n-----END PRIVATE KEY-----",
+    client_email: "firebase-adminsdk-fbsvc@pushserver-ff2b4.iam.gserviceaccount.com",
+    client_id: "116543851658091350123",
+    auth_uri: "https://accounts.google.com/o/oauth2/auth",
+    token_uri: "https://oauth2.googleapis.com/token",
+    auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+    client_x509_cert_url: "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40pushserver-ff2b4.iam.gserviceaccount.com",
+    universe_domain: "googleapis.com"
   })
 });
 
@@ -29,10 +38,6 @@ function devicesRef(appId) {
   return db.collection('push_tokens').doc(appId).collection('devices');
 }
 
-function appMetaRef(appId) {
-  return db.collection('push_app_meta').doc(appId);
-}
-
 app.get('/', (req, res) => {
   res.send('A K M R BANK PLC Push Notification Server is Running successfully!');
 });
@@ -41,8 +46,8 @@ app.get('/debug', (req, res) => {
   res.json({
     status: true,
     message: 'A K M R BANK Server Connected',
-    project_id: process.env.FIREBASE_PROJECT_ID,
-    client_email: process.env.FIREBASE_CLIENT_EMAIL
+    project_id: "pushserver-ff2b4",
+    client_email: "firebase-adminsdk-fbsvc@pushserver-ff2b4.iam.gserviceaccount.com"
   });
 });
 
