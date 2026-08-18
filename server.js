@@ -3,12 +3,16 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 
-// সরাসরি কোডের ভেতরে কনফিগারেশন বসানো হলো
+// এনভায়রনমেন্ট ভ্যারিয়েবল থেকে প্রাইভেট কি রিড করে ফরম্যাট করা হচ্ছে
+const privateKey = process.env.FIREBASE_PRIVATE_KEY 
+  ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') 
+  : undefined;
+
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: "pushserver-ff2b4",
     clientEmail: "firebase-adminsdk-fbsvc@pushserver-ff2b4.iam.gserviceaccount.com",
-    privateKey: "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC3v...\n-----END PRIVATE KEY-----\n"
+    privateKey: privateKey
   })
 });
 
