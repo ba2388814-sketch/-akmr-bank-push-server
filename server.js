@@ -3,12 +3,12 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 
-// ফায়ারবেস অ্যাডমিন SDK ইনিশিয়ালাইজেশন
+// Render-এর Environment Variable থেকে সরাসরি প্রাইভেট কি নেবে
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: "pushserver-ff2b4",
     clientEmail: "firebase-adminsdk-fbsvc@pushserver-ff2b4.iam.gserviceaccount.com",
-    privateKey: "-----BEGIN PRIVATE KEY-----\nআপনার_আসল_প্রাইভেট_কি_এখানে_পুরোটুকু_পেস্ট_করবেন\n-----END PRIVATE KEY-----"
+    privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
   })
 });
 
@@ -20,7 +20,7 @@ app.use(bodyParser.json());
 
 // সার্ভার রুট চেক
 app.get('/', (req, res) => {
-  jsonResponse(res, 200, { 
+  res.status(200).json({ 
     status: true, 
     message: 'A K M R BANK PLC Push Server is running successfully!' 
   });
@@ -90,10 +90,6 @@ app.post('/send-notification', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-
-function jsonResponse(res, status, data) {
-  res.status(status).json(data);
-}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
