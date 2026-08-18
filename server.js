@@ -3,12 +3,12 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 
-// Render-এর Environment Variable থেকে সরাসরি প্রাইভেট কি নেবে
+// সরাসরি কোডের ভেতরে কনফিগারেশন বসানো হলো
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: "pushserver-ff2b4",
     clientEmail: "firebase-adminsdk-fbsvc@pushserver-ff2b4.iam.gserviceaccount.com",
-    privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
+    privateKey: "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC3v...\n-----END PRIVATE KEY-----\n"
   })
 });
 
@@ -18,7 +18,6 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// সার্ভার রুট চেক
 app.get('/', (req, res) => {
   res.status(200).json({ 
     status: true, 
@@ -26,7 +25,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// ডিভাইস টোকেন রেজিস্টার করার API
 app.post('/register-token', async (req, res) => {
   try {
     const { token, appId, userAgent } = req.body;
@@ -48,7 +46,6 @@ app.post('/register-token', async (req, res) => {
   }
 });
 
-// নোটিফিকেশন পাঠানোর API
 app.post('/send-notification', async (req, res) => {
   try {
     const { appId, title, body, imageUrl } = req.body;
