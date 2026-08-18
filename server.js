@@ -3,12 +3,12 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 
-// সরাসরি কোডের ভেতরে কনফিগারেশন বসানো হলো যাতে কোনো এরর না আসে
+// ফায়ারবেস অ্যাডমিন SDK ইনিশিয়ালাইজেশন
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: "pushserver-ff2b4",
     clientEmail: "firebase-adminsdk-fbsvc@pushserver-ff2b4.iam.gserviceaccount.com",
-    privateKey: `-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDE2...\n-----END PRIVATE KEY-----`
+    privateKey: "-----BEGIN PRIVATE KEY-----\nআপনার_আসল_প্রাইভেট_কি_এখানে_পুরোটুকু_পেস্ট_করবেন\n-----END PRIVATE KEY-----"
   })
 });
 
