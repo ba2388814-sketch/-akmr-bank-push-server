@@ -7,7 +7,6 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ── Render Environment Variables থেকে সরাসরি কি নেওয়া হচ্ছে ──
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
@@ -17,10 +16,6 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
-
-// ════════════════════════════════════════════════════════════
-// HELPERS
-// ════════════════════════════════════════════════════════════
 
 function isValidAppId(appId) {
   return appId && /^[a-zA-Z0-9._\-]{3,100}$/.test(appId);
@@ -38,10 +33,6 @@ function appMetaRef(appId) {
   return db.collection('push_app_meta').doc(appId);
 }
 
-// ════════════════════════════════════════════════════════════
-// ROUTES
-// ════════════════════════════════════════════════════════════
-
 app.get('/', (req, res) => {
   res.send('A K M R BANK PLC Push Notification Server is Running successfully!');
 });
@@ -53,47 +44,6 @@ app.get('/debug', (req, res) => {
     project_id: process.env.FIREBASE_PROJECT_ID,
     client_email: process.env.FIREBASE_CLIENT_EMAIL
   });
-});
-
-app.get('/app-status', async (req, res) => {
-  const { appId } = req.query;
-  if (!isValidAppId(appId)) return res.status(400).json({ success: false, error: 'valid appId required' });
-
-  try {
-    const metaDoc   = await appMetaRef(appId).get();
-    const tokenSnap = await devicesRef(appId).get();
-    res.json({
-      success:      true,
-      appId,
-      bankName:     'A K M R BANK PLC',
-      registered:   metaDoc.exists,
-      registeredAt: metaDoc.exists ? metaDoc.data().registeredAt : null,
-      tokenCount:   tokenSnap.size
-    });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.post('/register-app', async (req, res) => {
-  const { appId } = req.body;
-  if (!isValidAppId(appId)) return res.status(400).json({ success: false, error: 'valid appId required' });
-
-  try {
-    const ref = appMetaRef(appId);
-    const doc = await ref.get();
-
-    await ref.set({
-      appId,
-      bankName:     'A K M R BANK PLC',
-      registeredAt: doc.exists ? doc.data().registeredAt : Date.now(),
-      updatedAt:    Date.now()
-    }, { merge: true });
-
-    res.json({ success: true, message: 'A K M R BANK app registered' });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
 });
 
 app.post('/register-token', async (req, res) => {
@@ -117,23 +67,6 @@ app.post('/register-token', async (req, res) => {
   }
 });
 
-app.get('/tokens', async (req, res) => {
-  const { appId } = req.query;
-  if (!isValidAppId(appId)) return res.status(400).json({ success: false, error: 'valid appId required' });
-
-  try {
-    const snap   = await devicesRef(appId).get();
-    const tokens = snap.docs.map(d => ({
-      token:        d.data().token,
-      registeredAt: d.data().registeredAt,
-      userAgent:    d.data().userAgent || ''
-    }));
-    res.json({ success: true, appId, count: tokens.length, tokens });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
 app.post('/send-notification', async (req, res) => {
   const { token, title, body, imageUrl } = req.body;
   if (!token) return res.status(400).json({ success: false, error: 'token required' });
@@ -142,9 +75,12 @@ app.post('/send-notification', async (req, res) => {
     const t = title || 'A K M R BANK Notification';
     const b = body  || '';
 
+    const payloadData = { title: t, body: b };
+    if (imageUrl) payloadData.imageUrl = imageUrl;
+
     const message = {
       token,
-      data: { title: t, body: b, ...(imageUrl ? { imageUrl } : {}) },
+      data: payloadData,
       android: { priority: 'high' }
     };
 
@@ -166,9 +102,13 @@ app.post('/send-all', async (req, res) => {
     const tokens = snap.docs.map(d => d.data().token).filter(Boolean);
     const t = title || 'A K M R BANK Notification';
     const b = body  || '';
+
+    const payloadData = { title: t, body: b };
+    if (imageUrl) payloadData.imageUrl = imageUrl;
+
     const messages = tokens.map(token => ({
       token,
-      data: { title: t, body: b, ...(imageUrl ? { imageUrl } : {}) },
+      data: payloadData,
       android: { priority: 'high' }
     }));
 
@@ -194,62 +134,5 @@ app.post('/send-all', async (req, res) => {
   }
 });
 
-app.delete('/token', async (req, res) => {
-  const { appId, token } = req.query;
-  if (!isValidAppId(appId) || !token) return res.status(400).json({ success: false, error: 'appId and token required' });
-
-  try {
-    await devicesRef(appId).doc(tokenDocId(token)).delete();
-    res.json({ success: true, message: 'Token deleted from A K M R BANK records' });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-// ════════════════════════════════════════════════════════════
-const PORT = process.env.PORT || 7860;
-app.listen(PORT, () => console.log(`A K M R BANK Push Server running on port ${PORT}`));
-      data: { title: t, body: b, ...(imageUrl ? { imageUrl } : {}) },
-      android: { priority: 'high' }
-    }));
-
-    const result = await admin.messaging().sendEach(messages);
-    console.log(`[${appId}] A K M R BANK Sent: ${result.successCount} ok, ${result.failureCount} failed`);
-
-    const batch = db.batch();
-    let removed = 0;
-    result.responses.forEach((r, i) => {
-      if (!r.success) { batch.delete(snap.docs[i].ref); removed++; }
-    });
-    if (removed > 0) await batch.commit();
-
-    res.json({
-      success:      true,
-      appId,
-      total:        tokens.length,
-      successCount: result.successCount,
-      failureCount: result.failureCount,
-      message:      'Broadcast processed by A K M R BANK Server'
-    });
-  } catch (e) {
-    console.error('Send-all error:', e.message);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-// ── Delete a token ──
-app.delete('/token', async (req, res) => {
-  const { appId, token } = req.query;
-  if (!isValidAppId(appId) || !token) return res.status(400).json({ success: false, error: 'appId and token required' });
-
-  try {
-    await devicesRef(appId).doc(tokenDocId(token)).delete();
-    res.json({ success: true, message: 'Token deleted from A K M R BANK records' });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-// ════════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 7860;
 app.listen(PORT, () => console.log(`A K M R BANK Push Server running on port ${PORT}`));
