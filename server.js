@@ -3,14 +3,13 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 
-// রেন্ডারের FIREBASE_CONFIG_JSON থেকে সরাসরি ডাটা রিড করে কনফিগার করার কোড
-const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
-if (serviceAccount.private_key) {
-  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-}
-
+// সরাসরি কোডের ভেতরে কনফিগারেশন বসানো হলো যাতে কোনো এরর না আসে
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert({
+    projectId: "pushserver-ff2b4",
+    clientEmail: "firebase-adminsdk-fbsvc@pushserver-ff2b4.iam.gserviceaccount.com",
+    privateKey: `-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDE2...\n-----END PRIVATE KEY-----`
+  })
 });
 
 const db = admin.firestore();
