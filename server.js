@@ -3,11 +3,13 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 
-// রেন্ডারের Environment Variable থেকে সিক্রেট কি রিড করার সঠিক পদ্ধতি
-const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
-
+// আলাদা আলাদা Environment Variable দিয়ে ফায়ারবেস কানেক্ট করার নিরাপদ পদ্ধতি
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
+  })
 });
 
 const db = admin.firestore();
