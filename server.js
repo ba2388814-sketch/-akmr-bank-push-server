@@ -3,13 +3,14 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 
-// ফায়ারবেস অ্যাডমিন SDK ইনিশিয়ালাইজেশন
+// রেন্ডারের FIREBASE_CONFIG_JSON থেকে সরাসরি ডাটা রিড করে কনফিগার করার কোড
+const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
+if (serviceAccount.private_key) {
+  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+}
+
 admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: "pushserver-ff2b4",
-    clientEmail: "firebase-adminsdk-fbsvc@pushserver-ff2b4.iam.gserviceaccount.com",
-    privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
-  })
+  credential: admin.credential.cert(serviceAccount)
 });
 
 const db = admin.firestore();
